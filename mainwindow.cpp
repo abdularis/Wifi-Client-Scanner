@@ -3,6 +3,7 @@
 #include <QMessageBox>
 #include <QCloseEvent>
 #include <QThread>
+#include <QDateTime>
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
@@ -86,7 +87,7 @@ void MainWindow::closeEvent(QCloseEvent *ev)
 {
     if (QMessageBox::question(this, "Exit?", "Are you sure want to exit?")
             == QMessageBox::Yes) {
-
+        // restore wifi interface mode
         set_iface_mode(mIface, "managed");
     }
     else {
@@ -97,7 +98,7 @@ void MainWindow::closeEvent(QCloseEvent *ev)
 
 void MainWindow::on_saveListAsBtn_clicked()
 {
-    QString fname = QFileDialog::getSaveFileName(this, "Save List to file as");
+    QString fname = QFileDialog::getSaveFileName(this, "Save List to file");
     if (fname.isEmpty())
         return;
 
@@ -106,15 +107,28 @@ void MainWindow::on_saveListAsBtn_clicked()
 
     QFile file(fname);
     if (file.open(QIODevice::WriteOnly)) {
-        file.write("==============[    Access Point    ]==============\n");
-        for (AccessPoint ap : aps) {
-            QString str = ap.ssid + "\t" + ap.bssid + "\t" + ap.vendor + "\n";
+        QDateTime currDate = QDateTime::currentDateTime();
+        QString strDate = "Date:\t" + currDate.toString("ddd dd MMM, yyyy") + "\n";
+
+        file.write(strDate.toStdString().c_str());
+        file.write("==============[  List of Access Point  ]==============\n");
+        for (int i = 0; i < aps.size(); i++) {
+            AccessPoint ap = aps.at(i);
+            QString str = "\n---["+ QString::number(i+1) +"]---\n" +
+                    "SSID:   " + ap.ssid    + "\n" +
+                    "BSSID:  " + ap.bssid   + "\n" +
+                    "Vendor: " + ap.vendor  + "\n";
             file.write(str.toStdString().c_str());
         }
 
-        file.write("\n\n==============[ Associated Stations ]==============\n");
-        for (AssocStation as : assoc) {
-            QString str = as.ap.ssid + "\t" + as.ap.bssid + "\t" + as.mac + "\t" + as.vendor + "\n";
+        file.write("\n==============[  List of Associated Station (Client)  ]==============\n");
+        for (int i = 0; i < assoc.size(); i++) {
+            AssocStation as = assoc.at(i);
+            QString str = "\n---["+ QString::number(i+1) +"]---\n" +
+                    "AP:     " + as.ap.ssid     + "\n" +
+                    "BSSID:  " + as.ap.bssid    + "\n" +
+                    "MAC:    " + as.mac         + "\n" +
+                    "Vendor: " + as.vendor      + "\n";
             file.write(str.toStdString().c_str());
         }
 

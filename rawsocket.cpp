@@ -12,6 +12,10 @@ RawSocket::RawSocket(const QString& net_iface, QObject *parent)
     : QAbstractSocket(QAbstractSocket::UnknownSocketType, parent),
         mNetIface(net_iface)
 {
+    /*
+     * Using linux raw socket
+     */
+
     int sock_fd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
     if (sock_fd == -1) {
         printf("[!] Failed to create socket\n");

@@ -4,8 +4,14 @@
 #include <QObject>
 #include <QHash>
 
+/*
+ * Forward declaration for RawSocket class
+ */
 class RawSocket;
 
+/*
+ * Store information about detected access point
+ */
 class AccessPoint
 {
 public:
@@ -20,6 +26,10 @@ public:
     QString vendor;
 };
 
+
+/*
+ * Store information about station (client) associated with particular access point
+ */
 class AssocStation
 {
 public:
@@ -35,6 +45,8 @@ class WifiSniffer : public QObject
     Q_OBJECT
 
 public:
+    static const int CHANNEL_SWITCH_INTERVAL = 500;
+
     explicit WifiSniffer(const QString& iface, QObject *parent = 0);
 
     QVector<AccessPoint> getAPList() const;

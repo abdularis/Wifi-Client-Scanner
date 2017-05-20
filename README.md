@@ -1,2 +1,2 @@
-##Air Monitor
-It's uses wifi monitor mode to sniff all packet transmitted by access point and/or station, & show information such as MAC, Vendor, SSID, BSSID of access point and devices connected to a particular AP
+##Wifi Client Scanner
+It's uses wifi monitor mode to sniff all packet transmitted by access point and/or station, & show information such as MAC, Vendor, SSID, BSSID of access point and devices connected to the AP.

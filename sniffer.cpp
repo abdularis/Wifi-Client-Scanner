@@ -5,6 +5,9 @@
 
 static QHash<QString, QString> mac_list_cache;
 
+/*
+ * Find device vendor of the given mac address
+ */
 QString find_mac_address(QString mac)
 {
     if (mac.size() > 8)
@@ -62,7 +65,7 @@ WifiSniffer::WifiSniffer(const QString& iface, QObject *parent) :
     connect(mRS, SIGNAL(readyRead()), this, SLOT(onReadyRead()));
 
     // change wifi channel regularly
-    startTimer(500);
+    startTimer(CHANNEL_SWITCH_INTERVAL);
 }
 
 // see 802.11 frame spec
@@ -89,8 +92,8 @@ void WifiSniffer::onReadyRead()
     }
     // type:2 = data frame
     else if (type == 2) {
-        int to_ds = frame.at(1) & 0x1;
-        int frm_ds = (frame.at(1) & 0x2) >> 1;
+        int to_ds = frame.at(1) & 0x1;          // to distributed system flag
+        int frm_ds = (frame.at(1) & 0x2) >> 1;  // from distributed system flag
 
         // data from station to distributed system (ds) (through AP)
         if (to_ds == 1 && frm_ds == 0) {
@@ -138,6 +141,10 @@ QString WifiSniffer::parseMacAddress(const QByteArray &raw_data)
                              (unsigned char) raw_data[5]);
 }
 
+
+/*
+ * Switch wifi interface card to specific wifi channel every CHANNEL_SWITCH_INTERVAL ms
+ */
 void WifiSniffer::timerEvent(QTimerEvent *ev)
 {
     if (++mCurrChannel > 14)
