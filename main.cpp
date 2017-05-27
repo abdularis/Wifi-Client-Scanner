@@ -9,11 +9,6 @@
 
 int main(int argc, char *argv[])
 {
-    if (argc < 2) {
-        printf("Please specify network interface.\n");
-        return 1;
-    }
-
     uid_t uid = getuid();
     if (uid != 0) {
         printf("Please run this program as root.\n");

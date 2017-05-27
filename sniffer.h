@@ -4,6 +4,13 @@
 #include <QObject>
 #include <QHash>
 
+#define MAC_VENDOR_LIST_FILE_NAME "vendorlist/list"
+#define WIFI_2_4_GHZ_CHANNEL_COUNT 11
+
+#define WIFI_MODE_MONITOR "monitor"
+#define WIFI_MODE_MANAGED "managed"
+
+
 /*
  * Forward declaration for RawSocket class
  */
@@ -52,6 +59,17 @@ public:
     QVector<AccessPoint> getAPList() const;
     QVector<AssocStation> getAssocStationList() const;
 
+    bool isStarted() const;
+
+    void setInterface(QString iface);
+    QString getInterface() const;
+
+    void clearData();
+
+public slots:
+    void start();
+    void stop();
+
 signals:
     void accessPointAdded(const AccessPoint& ap);
     void assocStationAdded(const AssocStation& asoc);
@@ -65,7 +83,10 @@ private slots:
 
 private:
     QString parseMacAddress(const QByteArray& raw_data);
+    void switchWifiMode(QString mode);
 
+    bool mStarted;
+    QString mIface;
     RawSocket* mRS;
     QHash<QString, AccessPoint> mAP;
     QHash<QString, AssocStation> mAssoc;

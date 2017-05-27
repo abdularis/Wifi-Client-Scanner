@@ -2,21 +2,10 @@
 #include <QFile>
 #include <QMessageBox>
 #include <QCloseEvent>
-#include <QThread>
 #include <QDateTime>
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-
-
-void set_iface_mode(const QString& iface, const QString& mode)
-{
-    // find better solution
-    system(QString("ifconfig " + iface + " down").toStdString().c_str());
-    system(QString("iwconfig " + iface + " mode " + mode).toStdString().c_str());
-    system(QString("ifconfig " + iface + " up").toStdString().c_str());
-}
-
 
 MainWindow::MainWindow(const QString& iface, QWidget *parent) :
     QMainWindow(parent),
@@ -24,8 +13,6 @@ MainWindow::MainWindow(const QString& iface, QWidget *parent) :
     mIface(iface)
 {
     ui->setupUi(this);
-    set_iface_mode(mIface, "monitor");
-    QThread::msleep(500);
 
     mWS = new WifiSniffer(mIface, this);
 
@@ -34,26 +21,9 @@ MainWindow::MainWindow(const QString& iface, QWidget *parent) :
     connect(mWS, SIGNAL(channelChanged(int)), this, SLOT(onChannelChanged(int)));
 
     mAPModel = new QStandardItemModel();
-    mAPModel->setHorizontalHeaderItem(0, new QStandardItem("SSID"));
-    mAPModel->setHorizontalHeaderItem(1, new QStandardItem("BSSID"));
-    mAPModel->setHorizontalHeaderItem(2, new QStandardItem("Vendor"));
-
     mAssocModel = new QStandardItemModel();
-    mAssocModel->setHorizontalHeaderItem(0, new QStandardItem("AP SSID"));
-    mAssocModel->setHorizontalHeaderItem(1, new QStandardItem("AP BSSID"));
-    mAssocModel->setHorizontalHeaderItem(2, new QStandardItem("Client MAC"));
-    mAssocModel->setHorizontalHeaderItem(3, new QStandardItem("Client Vendor"));
 
-    ui->ap_table->setModel(mAPModel);
-    ui->ap_table->setColumnWidth(0, 250);
-    ui->ap_table->setColumnWidth(1, 160);
-    ui->ap_table->setColumnWidth(2, 280);
-
-    ui->as_table->setModel(mAssocModel);
-    ui->as_table->setColumnWidth(0, 250);
-    ui->as_table->setColumnWidth(1, 160);
-    ui->as_table->setColumnWidth(2, 160);
-    ui->as_table->setColumnWidth(3, 280);
+    setupTableHeaders();
 }
 
 MainWindow::~MainWindow()
@@ -87,8 +57,7 @@ void MainWindow::closeEvent(QCloseEvent *ev)
 {
     if (QMessageBox::question(this, "Exit?", "Are you sure want to exit?")
             == QMessageBox::Yes) {
-        // restore wifi interface mode
-        set_iface_mode(mIface, "managed");
+        mWS->stop();
     }
     else {
         ev->ignore();
@@ -115,9 +84,9 @@ void MainWindow::on_saveListAsBtn_clicked()
         for (int i = 0; i < aps.size(); i++) {
             AccessPoint ap = aps.at(i);
             QString str = "\n---["+ QString::number(i+1) +"]---\n" +
-                    "SSID:   " + ap.ssid    + "\n" +
-                    "BSSID:  " + ap.bssid   + "\n" +
-                    "Vendor: " + ap.vendor  + "\n";
+                    "SSID   :" + ap.ssid    + "\n" +
+                    "BSSID  :" + ap.bssid   + "\n" +
+                    "Vendor :" + ap.vendor  + "\n";
             file.write(str.toStdString().c_str());
         }
 
@@ -125,13 +94,64 @@ void MainWindow::on_saveListAsBtn_clicked()
         for (int i = 0; i < assoc.size(); i++) {
             AssocStation as = assoc.at(i);
             QString str = "\n---["+ QString::number(i+1) +"]---\n" +
-                    "AP:     " + as.ap.ssid     + "\n" +
-                    "BSSID:  " + as.ap.bssid    + "\n" +
-                    "MAC:    " + as.mac         + "\n" +
-                    "Vendor: " + as.vendor      + "\n";
+                    "AP     :" + as.ap.ssid     + "\n" +
+                    "BSSID  :" + as.ap.bssid    + "\n" +
+                    "MAC    :" + as.mac         + "\n" +
+                    "Vendor :" + as.vendor      + "\n";
             file.write(str.toStdString().c_str());
         }
 
         file.close();
     }
+}
+
+void MainWindow::on_startToggleBtn_toggled(bool checked)
+{
+    if (checked) {
+        mIface = ui->ifaceText->text().toLower();
+        if (!mIface.isEmpty()) {
+            ui->startToggleBtn->setText("Stop");
+            ui->ifaceText->setEnabled(false);
+
+            mWS->setInterface(mIface);
+            mWS->start();
+        }
+    }
+    else {
+        ui->startToggleBtn->setText("Start");
+        ui->ifaceText->setEnabled(true);
+        mWS->stop();
+    }
+}
+
+void MainWindow::on_clearBtn_clicked()
+{
+    mAPModel->clear();
+    mAssocModel->clear();
+    mWS->clearData();
+
+    setupTableHeaders();
+}
+
+void MainWindow::setupTableHeaders()
+{
+    mAPModel->setHorizontalHeaderItem(0, new QStandardItem("SSID"));
+    mAPModel->setHorizontalHeaderItem(1, new QStandardItem("BSSID"));
+    mAPModel->setHorizontalHeaderItem(2, new QStandardItem("Vendor"));
+
+    mAssocModel->setHorizontalHeaderItem(0, new QStandardItem("AP SSID"));
+    mAssocModel->setHorizontalHeaderItem(1, new QStandardItem("AP BSSID"));
+    mAssocModel->setHorizontalHeaderItem(2, new QStandardItem("Client MAC"));
+    mAssocModel->setHorizontalHeaderItem(3, new QStandardItem("Client Vendor"));
+
+    ui->ap_table->setModel(mAPModel);
+    ui->ap_table->setColumnWidth(0, 250);
+    ui->ap_table->setColumnWidth(1, 160);
+    ui->ap_table->setColumnWidth(2, 280);
+
+    ui->as_table->setModel(mAssocModel);
+    ui->as_table->setColumnWidth(0, 250);
+    ui->as_table->setColumnWidth(1, 160);
+    ui->as_table->setColumnWidth(2, 160);
+    ui->as_table->setColumnWidth(3, 280);
 }

@@ -2,6 +2,7 @@
 #include "rawsocket.h"
 #include <QtDebug>
 #include <QFile>
+#include <QThread>
 
 static QHash<QString, QString> mac_list_cache;
 
@@ -18,7 +19,7 @@ QString find_mac_address(QString mac)
         return mac_list_cache[mac];
     }
 
-    QFile file("mlist/db");
+    QFile file(MAC_VENDOR_LIST_FILE_NAME);
     if (file.open(QIODevice::ReadOnly)) {
         qint64 read = 0;
         do {
@@ -61,8 +62,10 @@ AssocStation::AssocStation(const QString &mac, const AccessPoint &ap)
 WifiSniffer::WifiSniffer(const QString& iface, QObject *parent) :
     QObject(parent), mCurrChannel(1)
 {
-    mRS = new RawSocket(iface, this);
-    connect(mRS, SIGNAL(readyRead()), this, SLOT(onReadyRead()));
+    mStarted = false;
+    mIface = iface;
+    mRS = NULL;
+    mCurrChannel = 1;
 
     // change wifi channel regularly
     startTimer(CHANNEL_SWITCH_INTERVAL);
@@ -81,8 +84,8 @@ void WifiSniffer::onReadyRead()
     if (type == 0 && subtype == 8) {
 
         QString bssid = parseMacAddress(frame.mid(16, 6));
-        int ssid_len = (int) frame.at(37);
-        QString ssid = QString::fromStdString(frame.mid(38, ssid_len).toStdString());
+        int ssidLen = (int) frame.at(37);
+        QString ssid = QString::fromStdString(frame.mid(38, ssidLen).toStdString());
 
         if (!mAP.contains(bssid)) {
             mAP[bssid] = AccessPoint(ssid, bssid);
@@ -90,20 +93,19 @@ void WifiSniffer::onReadyRead()
         }
 
     }
-    // type:2 = data frame
-    else if (type == 2) {
-        int to_ds = frame.at(1) & 0x1;          // to distributed system flag
-        int frm_ds = (frame.at(1) & 0x2) >> 1;  // from distributed system flag
+    else if (type == 2) { // type:2 = data frame
+        int toDs = frame.at(1) & 0x1;           // to distributed system flag
+        int fromDs = (frame.at(1) & 0x2) >> 1;  // from distributed system flag
 
         // data from station to distributed system (ds) (through AP)
-        if (to_ds == 1 && frm_ds == 0) {
-            QString bssid = parseMacAddress(frame.mid(4, 6));
-            QString sa = parseMacAddress(frame.mid(10, 6));
+        if (toDs == 1 && fromDs == 0) {
+            QString apBssid = parseMacAddress(frame.mid(4, 6));
+            QString clientMac = parseMacAddress(frame.mid(10, 6));
 
-            if (!mAssoc.contains(bssid)) {
-                if (mAP.contains(bssid)) {
-                    mAssoc[bssid] = AssocStation(sa, mAP.value(bssid));
-                    emit assocStationAdded(mAssoc[bssid]);
+            if (!mAssoc.contains(apBssid)) {
+                if (mAP.contains(apBssid)) {
+                    mAssoc[apBssid] = AssocStation(clientMac, mAP.value(apBssid));
+                    emit assocStationAdded(mAssoc[apBssid]);
                 }
             }
 
@@ -128,6 +130,58 @@ QVector<AssocStation> WifiSniffer::getAssocStationList() const
     return assoc;
 }
 
+void WifiSniffer::setInterface(QString iface)
+{
+    mIface = iface;
+}
+
+QString WifiSniffer::getInterface() const
+{
+    return mIface;
+}
+
+void WifiSniffer::clearData()
+{
+    mAP.clear();
+    mAssoc.clear();
+}
+
+bool WifiSniffer::isStarted() const
+{
+    return mStarted;
+}
+
+void WifiSniffer::start()
+{
+    if (!mStarted) {
+        mStarted = true;
+
+        if (mRS != NULL && !mIface.isEmpty() && mIface != mRS->getInterface()) {
+            mRS->close();
+            delete mRS;
+            mRS = NULL;
+        }
+
+        switchWifiMode(WIFI_MODE_MONITOR);
+        if (mRS == NULL) {
+            mRS = new RawSocket(mIface, this);
+        }
+        connect(mRS, SIGNAL(readyRead()), this, SLOT(onReadyRead()));
+    }
+}
+
+void WifiSniffer::stop()
+{
+    if (mStarted) {
+        mStarted = false;
+
+        if (mRS != NULL) {
+            switchWifiMode(WIFI_MODE_MANAGED);
+            disconnect(mRS, SIGNAL(readyRead()), this, SLOT(onReadyRead()));
+        }
+    }
+}
+
 QString WifiSniffer::parseMacAddress(const QByteArray &raw_data)
 {
     if (raw_data.size() < 6)
@@ -147,10 +201,23 @@ QString WifiSniffer::parseMacAddress(const QByteArray &raw_data)
  */
 void WifiSniffer::timerEvent(QTimerEvent *ev)
 {
-    if (++mCurrChannel > 14)
+    if (!mStarted) return;
+    if (++mCurrChannel > WIFI_2_4_GHZ_CHANNEL_COUNT)
         mCurrChannel = 1;
 
     system(QString("iwconfig " + mRS->getInterface() + " channel " + QString::number(mCurrChannel))
            .toStdString().c_str());
     emit channelChanged(mCurrChannel);
+}
+
+void WifiSniffer::switchWifiMode(QString mode)
+{
+    QString msg = "Turning " + mIface + " into " + mode + " mode...";
+    qDebug() << msg;
+
+    system(QString("ifconfig " + mIface + " down").toStdString().c_str());
+    system(QString("iwconfig " + mIface + " mode " + mode).toStdString().c_str());
+    system(QString("ifconfig " + mIface + " up").toStdString().c_str());
+
+    QThread::msleep(400);
 }

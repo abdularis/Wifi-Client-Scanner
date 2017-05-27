@@ -22,3 +22,6 @@ HEADERS  += mainwindow.h \
     sniffer.h
 
 FORMS    += mainwindow.ui
+
+OTHER_FILES += \
+    mlist/db

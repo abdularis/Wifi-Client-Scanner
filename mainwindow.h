@@ -6,6 +6,9 @@
 
 #include "sniffer.h"
 
+#define WIFI_MODE_MONITOR "monitor"
+#define WIFI_MODE_MANAGED "managed"
+
 namespace Ui {
 class MainWindow;
 }
@@ -28,7 +31,13 @@ private slots:
 
     void on_saveListAsBtn_clicked();
 
+    void on_startToggleBtn_toggled(bool checked);
+
+    void on_clearBtn_clicked();
+
 private:
+    void setupTableHeaders();
+
     Ui::MainWindow *ui;
 
     WifiSniffer* mWS;

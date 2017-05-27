@@ -18,6 +18,42 @@
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout">
       <item>
+       <widget class="QLabel" name="label_3">
+        <property name="text">
+         <string>Wireless Interface:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="ifaceText">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>100</width>
+          <height>16777215</height>
+         </size>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="startToggleBtn">
+        <property name="text">
+         <string>Start</string>
+        </property>
+        <property name="checkable">
+         <bool>true</bool>
+        </property>
+        <property name="default">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
        <spacer name="horizontalSpacer_2">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
@@ -31,9 +67,16 @@
        </spacer>
       </item>
       <item>
+       <widget class="QPushButton" name="clearBtn">
+        <property name="text">
+         <string>Clear</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QPushButton" name="saveListAsBtn">
         <property name="text">
-         <string>Save List As</string>
+         <string>Save List</string>
         </property>
         <property name="shortcut">
          <string>Ctrl+S</string>
@@ -43,12 +86,25 @@
      </layout>
     </item>
     <item>
+     <widget class="Line" name="line">
+      <property name="frameShadow">
+       <enum>QFrame::Sunken</enum>
+      </property>
+      <property name="lineWidth">
+       <number>1</number>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+     </widget>
+    </item>
+    <item>
      <widget class="QLabel" name="label">
       <property name="toolTip">
        <string>List of AP (Access Point) detected in the range</string>
       </property>
       <property name="text">
-       <string>Access Point</string>
+       <string>Access Points (Hotspots)</string>
       </property>
      </widget>
     </item>
@@ -64,7 +120,7 @@
        <enum>QAbstractItemView::SingleSelection</enum>
       </property>
       <property name="selectionBehavior">
-       <enum>QAbstractItemView::SelectRows</enum>
+       <enum>QAbstractItemView::SelectItems</enum>
       </property>
      </widget>
     </item>
@@ -74,7 +130,7 @@
        <string>List of stations associated with particular access point</string>
       </property>
       <property name="text">
-       <string>Associated Stations</string>
+       <string>Associated Stations (Clients)</string>
       </property>
      </widget>
     </item>
@@ -90,7 +146,7 @@
        <enum>QAbstractItemView::SingleSelection</enum>
       </property>
       <property name="selectionBehavior">
-       <enum>QAbstractItemView::SelectRows</enum>
+       <enum>QAbstractItemView::SelectItems</enum>
       </property>
      </widget>
     </item>
